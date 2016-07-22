@@ -313,9 +313,11 @@ Microsoft\\MediaPlayer\\updatewindws\.exe;100
 (Temp|Tmp|TEMP)\\muysf\\ipbuy.exe;70
 \\Order Details\.xls\.pps;60
 
-# Sofacy - Malware Bundestag http://goo.gl/OtmPzq
-Windows\\winexesvc\.exe;70
+# Sofacy - Malware http://goo.gl/OtmPzq
 \\svchost\.exe\.exe;70
+
+# Winexesvc - Remote Execution Service - often used by Pentesters and Hackers
+Windows\\winexesvc\.exe;70
 
 # Wild Neutron File Names https://goo.gl/Qew6dT
 AppData\\Roaming\\FlashUtil\.exe;60
@@ -1230,5 +1232,36 @@ AppData\\adobe\\adobe\.dat;65
 \\winl[^o]gon\.exe;55
 \\winlog[^o]n\.exe;55
 \\winlogon[0-9_a-z]{1,3}\.exe;55
+
+# FireEye Irongate
+\\bla\.exe;80
+\\update_no_pipe\.exe;80
+\\scada\.exe;50
+\\Step7ConMgr\.dll;70
+\\scomma scxrt2\.ini;80
+\\scxrt2\.ini;80
+
+# Sofacy APT http://goo.gl/YXb8ZX
+[Cc]:\\ProgramData\\iprpp\.dll;100
+AppData\\Roaming\\amdcache\.dll;100
+
+# Sofacy APT http://goo.gl/mzAa97
+AppData\\Roaming\\btecache\.dll;90
+
+# Many malware samples - including StarCruft
+\\scvhosts\.exe;70
+
+# Kaspersky Report https://goo.gl/iWUz63
+\\[Ss]ystem32\\scclient\.exe;80
+
+# Suspicious Location
+[Cc]:\\[Ww]indows\\[Ss]ecurity\\[A-Za-z0-9]{1,10}\.(exe|dll);80
+
+# Skeleton Key https://goo.gl/sc6Lqq
+\\msuta64\.dll;80
+\\ole64\.dll;80
+\\olex64\.dll;80
+\\HookDC\.dll;80
+\\HookDC64\.dll;80
 
 # End

@@ -22,12 +22,14 @@
 rule WindowsCredentialEditor
 {
     meta:
-    	description = "Windows Credential Editor" threat_level = 10 score = 90
+    	description = "Windows Credential Editor"
+      threat_level = 10
+      score = 90
     strings:
 		$a = "extract the TGT session key"
 		$b = "Windows Credentials Editor"
     condition:
-    	$a or $b
+    	all of them
 }
 
 rule Amplia_Security_Tool
@@ -112,7 +114,10 @@ rule HackTool_Samples {
 }
 
 rule HackTool_Producers {
-	meta: description = "Hacktool Producers String" threat_level = 5 score = 50
+	meta: description = "Hacktool Producers String"
+   threat_level = 5
+   score = 50
+   nodeepdive = 1
 	strings:
 	$a1 = "www.oxid.it"
 	$a2 = "www.analogx.com"
@@ -856,27 +861,6 @@ rule iKAT_startbar {
 		$s8 = "56 Wright St1" fullword ascii
 		$s9 = "UTN-USERFirst-Object" fullword ascii
 		$s10 = "New Zealand1" fullword ascii
-	condition:
-		all of them
-}
-
-rule iKAT_gpdisable_customcmd_kitrap0d_uacpoc {
-	meta:
-		description = "iKAT hack tool set generic rule - from files gpdisable.exe, customcmd.exe, kitrap0d.exe, uacpoc.exe"
-		author = "Florian Roth"
-		date = "05.11.14"
-		reference = "http://ikat.ha.cked.net/Windows/functions/ikatfiles.html"
-		super_rule = 1
-		hash0 = "814c126f21bc5e993499f0c4e15b280bf7c1c77f"
-		hash1 = "2725690954c2ad61f5443eb9eec5bd16ab320014"
-		hash2 = "75f5aed1e719443a710b70f2004f34b2fe30f2a9"
-		hash3 = "b65a460d015fd94830d55e8eeaf6222321e12349"
-		score = 20
-	strings:
-		$s0 = "Failed to get temp file for source AES decryption" fullword
-		$s5 = "Failed to get encryption header for pwd-protect" fullword
-		$s17 = "Failed to get filetime" fullword
-		$s20 = "Failed to delete temp file for password decoding (3)" fullword
 	condition:
 		all of them
 }
@@ -2643,26 +2627,6 @@ rule Ammyy_Admin_AA_v3 {
 
 /* Other dumper and custom hack tools */
 
-rule LinuxHacktool_eyes_screen {
-	meta:
-		description = "Linux hack tools - file screen"
-		author = "Florian Roth"
-		reference = "not set"
-		date = "2015/01/19"
-		hash = "a240a0118739e72ff89cefa2540bf0d7da8f8a6c"
-	strings:
-		$s0 = "or: %s -r [host.tty]" fullword ascii
-		$s1 = "%s: process: character, ^x, or (octal) \\032 expected." fullword ascii
-		$s2 = "Type \"screen [-d] -r [pid.]tty.host\" to resume one of them." fullword ascii
-		$s6 = "%s: at [identifier][%%|*|#] command [args]" fullword ascii
-		$s8 = "Slurped only %d characters (of %d) into buffer - try again" fullword ascii
-		$s11 = "command from %s: %s %s" fullword ascii
-		$s16 = "[ Passwords don't match - your armor crumbles away ]" fullword ascii
-		$s19 = "[ Passwords don't match - checking turned off ]" fullword ascii
-	condition:
-		all of them
-}
-
 rule LinuxHacktool_eyes_scanssh {
 	meta:
 		description = "Linux hack tools - file scanssh"
@@ -2935,7 +2899,6 @@ rule mimikatz
 		author			= "Benjamin DELPY (gentilkiwi)"
 		tool_author		= "Benjamin DELPY (gentilkiwi)"
       score          = 80
-      type           = "file"
 	strings:
 		$exe_x86_1		= { 89 71 04 89 [0-3] 30 8d 04 bd }
 		$exe_x86_2		= { 89 79 04 89 [0-3] 38 8d 04 b5 }
@@ -3008,13 +2971,25 @@ rule lsadump
 	strings:
 		$str_sam_inc	= "\\Domains\\Account" ascii nocase
 		$str_sam_exc	= "\\Domains\\Account\\Users\\Names\\" ascii nocase
-		$hex_api_call	= {(41 b8 | 68) 00 00 00 02 [0-64] (68 | ba) ff 07 0f 00 }
+		$hex_api_call_1	= { 41 b8 00 00 00 02 [0-64] (68 | ba) ff 07 0f 00 }
+		$hex_api_call_2	= { 68 00 00 00 02 [0-64] (68 | ba) ff 07 0f 00 }
 		$str_msv_lsa	= { 4c 53 41 53 52 56 2e 44 4c 4c 00 [0-32] 6d 73 76 31 5f 30 2e 64 6c 6c 00 }
 		$hex_bkey		= { 4b 53 53 4d [20-70] 05 00 01 00}
 
 	condition:
-		( ($str_sam_inc and not $str_sam_exc) or $hex_api_call or $str_msv_lsa or $hex_bkey )
+		( ($str_sam_inc and not $str_sam_exc) or $hex_api_call_1 or $hex_api_call_2 or $str_msv_lsa or $hex_bkey )
       and not uint16(0) == 0x5a4d
+}
+
+rule power_pe_injection
+{
+	meta:
+		description		= "PowerShell with PE Reflective Injection"
+		author			= "Benjamin DELPY (gentilkiwi)"
+	strings:
+		$str_loadlib	= "0x53, 0x48, 0x89, 0xe3, 0x48, 0x83, 0xec, 0x20, 0x66, 0x83, 0xe4, 0xc0, 0x48, 0xb9"
+	condition:
+		$str_loadlib
 }
 
 rule Mimikatz_Logfile
@@ -3163,4 +3138,73 @@ rule PSAttack_ZIP {
 		$s0 = "PSAttack.exe" fullword ascii
 	condition:
 		uint16(0) == 0x4b50 and all of them
+}
+
+/*
+	Yara Rule Set
+	Author: Florian Roth
+	Date: 2016-04-01
+	Identifier: Linux Hacktool Shark
+*/
+
+/* Super Rules ------------------------------------------------------------- */
+
+rule Linux_Portscan_Shark_1 {
+	meta:
+		description = "Detects Linux Port Scanner Shark"
+		author = "Florian Roth"
+		reference = "Virustotal Research - see https://github.com/Neo23x0/Loki/issues/35"
+		date = "2016-04-01"
+		super_rule = 1
+		hash1 = "4da0e535c36c0c52eaa66a5df6e070c52e7ddba13816efc3da5691ea2ec06c18"
+		hash2 = "e395ca5f932419a4e6c598cae46f17b56eb7541929cdfb67ef347d9ec814dea3"
+	strings:
+		$s0 = "rm -rf scan.log session.txt" fullword ascii
+		$s17 = "*** buffer overflow detected ***: %s terminated" fullword ascii
+		$s18 = "*** stack smashing detected ***: %s terminated" fullword ascii
+	condition:
+		( uint16(0) == 0x7362 and all of them )
+}
+
+rule Linux_Portscan_Shark_2 {
+	meta:
+		description = "Detects Linux Port Scanner Shark"
+		author = "Florian Roth"
+		reference = "Virustotal Research - see https://github.com/Neo23x0/Loki/issues/35"
+		date = "2016-04-01"
+		super_rule = 1
+		hash1 = "5f80bd2db608a47e26290f3385eeb5bfc939d63ba643f06c4156704614def986"
+		hash2 = "90af44cbb1c8a637feda1889d301d82fff7a93b0c1a09534909458a64d8d8558"
+	strings:
+		$s1 = "usage: %s <fisier ipuri> <fisier useri:parole> <connect timeout> <fail2ban wait> <threads> <outfile> <port>" fullword ascii
+		$s2 = "Difference between server modulus and host modulus is only %d. It's illegal and may not work" fullword ascii
+		$s3 = "rm -rf scan.log" fullword ascii
+	condition:
+		all of them
+}
+
+/*
+	Yara Rule Set
+	Author: Florian Roth
+	Date: 2016-05-15
+	Identifier: dnscat2
+*/
+
+rule dnscat2_Hacktool {
+	meta:
+		description = "Detects dnscat2 - from files dnscat, dnscat2.exe"
+		author = "Florian Roth"
+		reference = "https://downloads.skullsecurity.org/dnscat2/"
+		date = "2016-05-15"
+		super_rule = 1
+		hash1 = "8bc8d6c735937c9c040cbbdcfc15f17720a7ecef202a19a7bf43e9e1c66fe66a"
+		hash2 = "4a882f013419695c8c0ac41d8a0fde1cf48172a89e342c504138bc6f1d13c7c8"
+	strings:
+		$s1 = "--exec -e <process>     Execute the given process and link it to the stream." fullword ascii
+		$s2 = "Sawlog" fullword ascii
+		$s3 = "COMMAND_EXEC [request] :: request_id: 0x%04x :: name: %s :: command: %s" fullword ascii
+		$s4 = "COMMAND_SHELL [request] :: request_id: 0x%04x :: name: %s" fullword ascii
+		$s5 = "[Tunnel %d] connection to %s:%d closed by the server!" fullword ascii
+	condition:
+		( ( uint16(0) == 0x457f or uint16(0) == 0x5a4d ) and filesize < 400KB and ( 2 of ($s*) ) ) or ( all of them )
 }

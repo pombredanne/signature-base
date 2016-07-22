@@ -83,7 +83,7 @@ rule Suspicious_Size_explorer_exe {
         uint16(0) == 0x5a4d
         and filename == "explorer.exe"
         and not filepath contains "teamviewer"
-        and ( filesize < 1000KB or filesize > 3000KB )
+        and ( filesize < 1000KB or filesize > 3500KB )
 }
 
 rule Suspicious_Size_chrome_exe {
@@ -156,7 +156,7 @@ rule Suspicious_Size_lsass_exe {
     condition:
         uint16(0) == 0x5a4d
         and filename == "lsass.exe"
-        and ( filesize < 13KB or filesize > 58KB )
+        and ( filesize < 10KB or filesize > 58KB )
 }
 
 rule Suspicious_Size_svchost_exe {
@@ -240,7 +240,7 @@ rule Suspicious_Size_spoolsv_exe {
     condition:
         uint16(0) == 0x5a4d
         and filename == "spoolsv.exe"
-        and ( filesize < 50KB or filesize > 900KB )
+        and ( filesize < 50KB or filesize > 930KB )
 }
 
 rule Suspicious_Size_smss_exe {
@@ -252,7 +252,7 @@ rule Suspicious_Size_smss_exe {
     condition:
         uint16(0) == 0x5a4d
         and filename == "smss.exe"
-        and ( filesize < 40KB or filesize > 140KB )
+        and ( filesize < 40KB or filesize > 320KB )
 }
 
 rule Suspicious_Size_wininit_exe {
