@@ -2447,25 +2447,6 @@ rule WinEggDropShellFinal_zip_Folder_InjectT {
 		all of them
 }
 
-rule sig_238_rshsvc {
-	meta:
-		description = "Disclosed hacktool set (old stuff) - file rshsvc.bat"
-		author = "Florian Roth"
-		date = "23.11.14"
-		score = 60
-		hash = "fb15c31254a21412aecff6a6c4c19304eb5e7d75"
-	strings:
-		$s0 = "if not exist %1\\rshsetup.exe goto ERROR2" fullword ascii
-		$s1 = "ECHO rshsetup.exe is not found in the %1 directory" fullword ascii
-		$s9 = "REM %1 directory must have rshsetup.exe,rshsvc.exe and rshsvc.dll" fullword ascii
-		$s10 = "copy %1\\rshsvc.exe" fullword ascii
-		$s12 = "ECHO Use \"net start rshsvc\" to start the service." fullword ascii
-		$s13 = "rshsetup %SystemRoot%\\system32\\rshsvc.exe %SystemRoot%\\system32\\rshsvc.dll" fullword ascii
-		$s18 = "pushd %SystemRoot%\\system32" fullword ascii
-	condition:
-		all of them
-}
-
 rule gina_zip_Folder_gina {
 	meta:
 		description = "Disclosed hacktool set (old stuff) - file gina.dll"
@@ -2731,10 +2712,9 @@ rule CN_Portscan : APT
         confidential = false
 		score = 70
     strings:
-    	$s1 = "MZ"
 		$s2 = "TCP 12.12.12.12"
     condition:
-        ($s1 at 0) and $s2
+        uint16(0) == 0x5A4D and $s2
 }
 
 rule WMI_vbs : APT
@@ -2841,11 +2821,10 @@ rule DarkComet_Keylogger_File
 		date = "25.07.14"
 		score = 50
 	strings:
-		$magic = "::"
 		$entry = /\n:: [A-Z]/
 		$timestamp = /\([0-9]?[0-9]:[0-9][0-9]:[0-9][0-9] [AP]M\)/
 	condition:
-		($magic at 0) and #entry > 10 and #timestamp > 10
+		uint16(0) == 0x3A3A and #entry > 10 and #timestamp > 10
 }
 
 /* Mimikatz */
@@ -2927,23 +2906,8 @@ rule mimikatz_lsass_mdmp
 		$lsass			= "System32\\lsass.exe"	wide nocase
 
 	condition:
-		(uint32(0) == 0x504d444d) and $lsass
+		(uint32(0) == 0x504d444d) and $lsass and filesize > 50000KB
 }
-
-
-rule mimikatz_kirbi_ticket
-{
-	meta:
-		description		= "KiRBi ticket for mimikatz"
-		author			= "Benjamin DELPY (gentilkiwi)"
-
-	strings:
-		$asn1			= { 76 82 ?? ?? 30 82 ?? ?? a0 03 02 01 05 a1 03 02 01 16 }
-
-	condition:
-		$asn1 at 0
-}
-
 
 rule wce
 {
@@ -2976,9 +2940,12 @@ rule lsadump
 		$str_msv_lsa	= { 4c 53 41 53 52 56 2e 44 4c 4c 00 [0-32] 6d 73 76 31 5f 30 2e 64 6c 6c 00 }
 		$hex_bkey		= { 4b 53 53 4d [20-70] 05 00 01 00}
 
+		$fp1 			= "Sysinternals" ascii
+      $fp2        = "Apple Inc." ascii wide
 	condition:
 		( ($str_sam_inc and not $str_sam_exc) or $hex_api_call_1 or $hex_api_call_2 or $str_msv_lsa or $hex_bkey )
       and not uint16(0) == 0x5a4d
+      and not 1 of ($fp*)
 }
 
 rule power_pe_injection
@@ -3207,4 +3174,361 @@ rule dnscat2_Hacktool {
 		$s5 = "[Tunnel %d] connection to %s:%d closed by the server!" fullword ascii
 	condition:
 		( ( uint16(0) == 0x457f or uint16(0) == 0x5a4d ) and filesize < 400KB and ( 2 of ($s*) ) ) or ( all of them )
+}
+
+rule WCE_in_memory {
+	meta:
+		description = "Detects Windows Credential Editor (WCE) in memory (and also on disk)"
+		author = "Florian Roth"
+		reference = "Internal Research"
+		score = 80
+		date = "2016-08-28"
+	strings:
+		$s1 = "wkKUSvflehHr::o:t:s:c:i:d:a:g:" fullword ascii
+		$s2 = "wceaux.dll" fullword ascii
+	condition:
+		all of them
+}
+
+rule pstgdump {
+	meta:
+		description = "Detects a tool used by APT groups - file pstgdump.exe"
+		author = "Florian Roth"
+		reference = "http://goo.gl/igxLyF"
+		date = "2016-09-08"
+		hash1 = "65d48a2f868ff5757c10ed796e03621961954c523c71eac1c5e044862893a106"
+	strings:
+		$x1 = "\\Release\\pstgdump.pdb" ascii
+		$x2 = "Failed to dump all protected storage items - see previous messages for details" fullword ascii
+		$x3 = "ptsgdump [-h][-q][-u Username][-p Password]" fullword ascii
+		$x4 = "Attempting to impersonate domain user '%s' in domain '%s'" fullword ascii
+		$x5 = "Failed to impersonate user (ImpersonateLoggedOnUser failed): error %d" fullword ascii
+		$x6 = "Unable to obtain handle to PStoreCreateInstance in pstorec.dll" fullword ascii
+	condition:
+		( uint16(0) == 0x5a4d and filesize < 200KB and 1 of ($x*) ) or ( 3 of them )
+}
+
+rule lsremora {
+	meta:
+		description = "Detects a tool used by APT groups"
+		author = "Florian Roth"
+		reference = "http://goo.gl/igxLyF"
+		date = "2016-09-08"
+		hash1 = "efa66f6391ec471ca52cd053159c8a8778f11f921da14e6daf76387f8c9afcd5"
+		hash2 = "e0327c1218fd3723e20acc780e20135f41abca35c35e0f97f7eccac265f4f44e"
+	strings:
+		$x1 = "Target: Failed to load primary SAM functions." fullword ascii
+		$x2 = "lsremora64.dll" fullword ascii
+		$x3 = "PwDumpError:999999" fullword wide
+		$x4 = "PwDumpError" fullword wide
+		$x5 = "lsremora.dll" fullword ascii
+
+		$s1 = ":\\\\.\\pipe\\%s" fullword ascii
+		$s2 = "x%s_history_%d:%d" fullword wide
+		$s3 = "Using pipe %s" fullword ascii
+	condition:
+		( uint16(0) == 0x5a4d and filesize < 200KB and 1 of ($x*) ) or ( 3 of them )
+}
+
+rule servpw {
+	meta:
+		description = "Detects a tool used by APT groups - file servpw.exe"
+		author = "Florian Roth"
+		reference = "http://goo.gl/igxLyF"
+		date = "2016-09-08"
+		hash1 = "97b39ac28794a7610ed83ad65e28c605397ea7be878109c35228c126d43e2f46"
+		hash2 = "0f340b471ef34c69f5413540acd3095c829ffc4df38764e703345eb5e5020301"
+	strings:
+		$s1 = "Unable to open target process: %d, pid %d" fullword ascii
+		$s2 = "LSASS.EXE" fullword wide
+		$s3 = "WriteProcessMemory failed: %d" fullword ascii
+		$s4 = "lsremora64.dll" fullword ascii
+		$s5 = "CreateRemoteThread failed: %d" fullword ascii
+		$s6 = "Thread code: %d, path: %s" fullword ascii
+	condition:
+		( uint16(0) == 0x5a4d and filesize < 200KB and 3 of them ) or ( all of them )
+}
+
+rule fgexec {
+	meta:
+		description = "Detects a tool used by APT groups - file fgexec.exe"
+		author = "Florian Roth"
+		reference = "http://goo.gl/igxLyF"
+		date = "2016-09-08"
+		hash1 = "8697897bee415f213ce7bc24f22c14002d660b8aaffab807490ddbf4f3f20249"
+	strings:
+		$x1 = "\\Release\\fgexec.pdb" ascii
+		$x2 = "fgexec Remote Process Execution Tool" fullword ascii
+		$x3 = "fgexec CallNamedPipe failed" fullword ascii
+		$x4 = "fizzgig and the mighty foofus.net team" fullword ascii
+	condition:
+		( uint16(0) == 0x5a4d and filesize < 100KB and 1 of ($x*) ) or ( 3 of them )
+}
+
+rule cachedump {
+	meta:
+		description = "Detects a tool used by APT groups - from files cachedump.exe, cachedump64.exe"
+		author = "Florian Roth"
+		reference = "http://goo.gl/igxLyF"
+		date = "2016-09-08"
+		super_rule = 1
+		hash1 = "cf58ca5bf8c4f87bb67e6a4e1fb9e8bada50157dacbd08a92a4a779e40d569c4"
+		hash2 = "e38edac8c838a043d0d9d28c71a96fe8f7b7f61c5edf69f1ce0c13e141be281f"
+	strings:
+		$s1 = "Failed to open key SECURITY\\Cache in RegOpenKeyEx. Is service running as SYSTEM ? Do you ever log on domain ? " fullword ascii
+		$s2 = "Unable to open LSASS.EXE process" fullword ascii
+		$s3 = "Service not found. Installing CacheDump Service (%s)" fullword ascii
+		$s4 = "CacheDump service successfully installed." fullword ascii
+		$s5 = "Kill CacheDump service (shouldn't be used)" fullword ascii
+		$s6 = "cacheDump [-v | -vv | -K]" fullword ascii
+	condition:
+		( uint16(0) == 0x5a4d and filesize < 500KB and 1 of them ) or ( 3 of them )
+}
+
+rule PwDump_B {
+	meta:
+		description = "Detects a tool used by APT groups - file PwDump.exe"
+		author = "Florian Roth"
+		reference = "http://goo.gl/igxLyF"
+		date = "2016-09-08"
+		hash1 = "3c796092f42a948018c3954f837b4047899105845019fce75a6e82bc99317982"
+	strings:
+		$x1 = "Usage: %s [-x][-n][-h][-o output_file][-u user][-p password][-s share] machineName" fullword ascii
+		$x2 = "pwdump6 Version %s by fizzgig and the mighty group at foofus.net" fullword ascii
+		$x3 = "where -x targets a 64-bit host" fullword ascii
+		$x4 = "Couldn't delete target executable from remote machine: %d" fullword ascii
+
+		$s1 = "lsremora64.dll" fullword ascii
+		$s2 = "lsremora.dll" fullword ascii
+		$s3 = "servpw.exe" fullword ascii
+	condition:
+		( uint16(0) == 0x5a4d and filesize < 400KB and 1 of ($x*) ) or ( 3 of them )
+}
+
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2016-10-07
+   Identifier: MSBuild Katz-XML
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
+
+rule MSBuild_Mimikatz_Execution_via_XML {
+   meta:
+      description = "Detects an XML that executes Mimikatz on an endpoint via MSBuild"
+      author = "Florian Roth"
+      reference = "https://gist.github.com/subTee/c98f7d005683e616560bda3286b6a0d8#file-katz-xml"
+      date = "2016-10-07"
+   strings:
+      $x1 = "<Project ToolsVersion=" ascii
+      $x2 = "</SharpLauncher>" fullword ascii
+
+      $s1 = "\"TVqQAAMAAAA" ascii
+      $s2 = "System.Convert.FromBase64String(" ascii
+      $s3 = ".Invoke(" ascii
+      $s4 = "Assembly.Load(" ascii
+      $s5 = ".CreateInstance(" ascii
+   condition:
+      all of them
+}
+
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-01-06
+   Identifier: Fscan
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
+
+rule Fscan_Portscanner {
+   meta:
+      description = "Fscan port scanner scan output / strings"
+      author = "Florian Roth"
+      reference = "https://twitter.com/JamesHabben/status/817112447970480128"
+      date = "2017-01-06"
+   strings:
+      $s1 = "Time taken:" fullword ascii
+      $s2 = "Scan finished at" fullword ascii
+      $s3 = "Scan started at" fullword ascii
+   condition:
+      filesize < 20KB and 3 of them
+}
+
+
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-03-15
+   Identifier: Windows Password Recovery
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
+
+rule WPR_loader_EXE {
+   meta:
+      description = "Windows Password Recovery - file loader.exe"
+      author = "Florian Roth"
+      reference = "Internal Research"
+      date = "2017-03-15"
+      hash1 = "e7d158d27d9c14a4f15a52ee5bf8aa411b35ad510b1b93f5e163ae7819c621e2"
+   strings:
+      $s1 = "Failed to get system process ID" fullword wide
+      $s2 = "gLSASS.EXE" fullword wide
+      $s3 = "WriteProcessMemory failed" fullword wide
+      $s4 = "wow64 process NOT created" fullword wide
+      $s5 = "\\ast.exe" fullword wide
+      $s6 = "Exit code=%s, status=%d" fullword wide
+      $s7 = "VirtualProtect failed" fullword wide
+      $s8 = "nSeDebugPrivilege" fullword wide
+   condition:
+      ( uint16(0) == 0x5a4d and filesize < 100KB and 3 of them )
+}
+
+rule WPR_loader_DLL {
+   meta:
+      description = "Windows Password Recovery - file loader64.dll"
+      author = "Florian Roth"
+      reference = "Internal Research"
+      date = "2017-03-15"
+      hash1 = "7b074cb99d45fc258e0324759ee970467e0f325e5d72c0b046c4142edc6776f6"
+      hash2 = "a1f27f7fd0e03601a11b66d17cfacb202eacf34f94de3c4e9d9d39ea8d1a2612"
+   strings:
+      $x1 = "loader64.dll" fullword ascii
+      $x2 = "loader.dll" fullword ascii
+
+      $s1 = "TUlDUk9TT0ZUX0FVVEhFTlRJQ0FUSU9OX1BBQ0tBR0VfVjFfMA==" fullword ascii /* base64 encoded string 'MICROSOFT_AUTHENTICATION_PACKAGE_V1_0' */
+      $s2 = "UmVtb3RlRGVza3RvcEhlbHBBc3Npc3RhbnRBY2NvdW50" fullword ascii /* base64 encoded string 'RemoteDesktopHelpAssistantAccount' */
+      $s3 = "U2FtSVJldHJpZXZlUHJpbWFyeUNyZWRlbnRpYWxz" fullword ascii /* base64 encoded string 'SamIRetrievePrimaryCredentials' */
+      $s4 = "VFM6SW50ZXJuZXRDb25uZWN0b3JQc3dk" fullword ascii /* base64 encoded string 'TS:InternetConnectorPswd' */
+      $s5 = "TCRVRUFjdG9yQWx0Q3JlZFByaXZhdGVLZXk=" fullword ascii /* base64 encoded string 'L$UEActorAltCredPrivateKey' */
+      $s6 = "YXNwbmV0X1dQX1BBU1NXT1JE" fullword ascii /* base64 encoded string 'aspnet_WP_PASSWORD' */
+      $s7 = "TCRBTk1fQ1JFREVOVElBTFM=" fullword ascii /* base64 encoded string 'L$ANM_CREDENTIALS' */
+      $s8 = "RGVmYXVsdFBhc3N3b3Jk" fullword ascii /* base64 encoded string 'DefaultPassword' */
+
+      $op0 = { 48 8b cd e8 e0 e8 ff ff 48 89 07 48 85 c0 74 72 } /* Opcode */
+      $op1 = { e8 ba 23 00 00 33 c9 ff 15 3e 82 } /* Opcode */
+      $op2 = { 48 83 c4 28 e9 bc 55 ff ff 48 8d 0d 4d a7 00 00 } /* Opcode */
+   condition:
+      uint16(0) == 0x5a4d and
+      filesize < 400KB and
+      (
+         ( 1 of ($x*) and 1 of ($s*) ) or
+         ( 1 of ($s*) and all of ($op*) )
+      )
+}
+
+rule WPR_Passscape_Loader {
+   meta:
+      description = "Windows Password Recovery - file ast.exe"
+      author = "Florian Roth"
+      reference = "Internal Research"
+      date = "2017-03-15"
+      hash1 = "f6f2d4b9f19f9311ec419f05224a1c17cf2449f2027cb7738294479eea56e9cb"
+   strings:
+      $s1 = "SYSTEM\\CurrentControlSet\\Services\\PasscapeLoader64" fullword wide
+      $s2 = "ast64.dll" fullword ascii
+      $s3 = "\\loader64.exe" fullword wide
+      $s4 = "Passcape 64-bit Loader Service" fullword wide
+      $s5 = "PasscapeLoader64" fullword wide
+      $s6 = "ast64 {msg1GkjN7Sh8sg2Al7ker63f}" fullword wide
+   condition:
+      ( uint16(0) == 0x5a4d and filesize < 200KB and 2 of them )
+}
+
+rule WPR_Asterisk_Hook_Library {
+   meta:
+      description = "Windows Password Recovery - file ast64.dll"
+      author = "Florian Roth"
+      reference = "Internal Research"
+      date = "2017-03-15"
+      hash1 = "225071140e170a46da0e57ce51f0838f4be00c8f14e9922c6123bee4dffde743"
+      hash2 = "95ec84dc709af990073495082d30309c42d175c40bd65cad267e6f103852a02d"
+   strings:
+      $s1 = "ast64.dll" fullword ascii
+      $s2 = "ast.dll" fullword wide
+      $s3 = "c:\\%s.lvc" fullword ascii
+      $s4 = "c:\\%d.lvc" fullword ascii
+      $s5 = "Asterisk Hook Library" fullword wide
+      $s6 = "?Ast_StartRd64@@YAXXZ" fullword ascii
+      $s7 = "Global\\{1374821A-281B-9AF4-%04X-12345678901234}" fullword ascii
+      $s8 = "2004-2013 Passcape Software" fullword wide
+      $s9 = "Global\\Passcape#6712%04X" fullword ascii
+   condition:
+      ( uint16(0) == 0x5a4d and filesize < 300KB and 3 of them )
+}
+
+rule WPR_WindowsPasswordRecovery_EXE {
+   meta:
+      description = "Windows Password Recovery - file wpr.exe"
+      author = "Florian Roth"
+      reference = "Internal Research"
+      date = "2017-03-15"
+      hash1 = "c1c64cba5c8e14a1ab8e9dd28828d036581584e66ed111455d6b4737fb807783"
+   strings:
+      $x1 = "UuPipe" fullword ascii
+      $x2 = "dbadllgl" fullword ascii
+      $x3 = "UkVHSVNUUlkgTU9O" fullword ascii /* base64 encoded string 'REGISTRY MON' */
+      $x4 = "RklMRSBNT05JVE9SIC0gU1l" fullword ascii /* base64 encoded string 'FILE MONITOR - SY' */
+
+      $s1 = "WPR.exe" fullword wide
+      $s2 = "Windows Password Recovery" fullword wide
+
+      $op0 = { 5f df 27 17 89 } /* Opcode */
+      $op1 = { 5f 00 00 f2 e5 cb 97 } /* Opcode */
+      $op2 = { e8 ed 00 f0 cc e4 00 a0 17 } /* Opcode */
+   condition:
+      uint16(0) == 0x5a4d and
+      filesize < 20000KB and
+      (
+         1 of ($x*) or
+         all of ($s*) or
+         all of ($op*)
+      )
+}
+
+rule WPR_WindowsPasswordRecovery_EXE_64 {
+   meta:
+      description = "Windows Password Recovery - file ast64.exe"
+      author = "Florian Roth"
+      reference = "Internal Research"
+      date = "2017-03-15"
+      hash1 = "4e1ea81443b34248c092b35708b9a19e43a1ecbdefe4b5180d347a6c8638d055"
+   strings:
+      $s1 = "%B %d %Y  -  %H:%M:%S" fullword wide
+
+      $op0 = { 48 8d 8c 24 50 22 00 00 e8 bf eb ff ff 4c 8b c7 } /* Opcode */
+      $op1 = { ff 15 16 25 01 00 f7 d8 1b } /* Opcode */
+      $op2 = { e8 c2 26 00 00 83 20 00 83 c8 ff 48 8b 5c 24 30 } /* Opcode */
+   condition:
+      ( uint16(0) == 0x5a4d and filesize < 300KB and all of them )
+}
+
+
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-03-17
+   Identifier: BeyondExec Remote Access Tool
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
+
+rule BeyondExec_RemoteAccess_Tool {
+   meta:
+      description = "Detects BeyondExec Remote Access Tool - file rexesvr.exe"
+      author = "Florian Roth"
+      reference = "https://goo.gl/BvYurS"
+      date = "2017-03-17"
+      hash1 = "3d3e3f0708479d951ab72fa04ac63acc7e5a75a5723eb690b34301580747032c"
+   strings:
+      $x1 = "\\BeyondExecV2\\Server\\Release\\Pipes.pdb" ascii
+      $x2 = "\\\\.\\pipe\\beyondexec%d-stdin" fullword ascii
+      $x3 = "Failed to create dispatch pipe. Do you have another instance running?" fullword ascii
+
+      $op1 = { 83 e9 04 72 0c 83 e0 03 03 c8 ff 24 85 80 6f 40 } /* Opcode */
+      $op2 = { 6a 40 33 c0 59 bf e0 d8 40 00 f3 ab 8d 0c 52 c1 } /* Opcode */
+   condition:
+      ( uint16(0) == 0x5a4d and filesize < 200KB and ( 1 of ($x*) or all of ($op*) ) ) or ( 3 of them )
 }

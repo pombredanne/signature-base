@@ -4574,7 +4574,7 @@ rule _r577_php_php_spy_php_php_s_php_php {
 	condition:
 		1 of them
 }
-rule _w_php_php_c99madshell_v2_1_php_php_wacking_php_php_c99shell_v1_0_php_php_c99php_SpecialShell_99_php_php_ctt_sh_php_php {
+rule webshell_c99_generic {
 	meta:
 		description = "Semi-Auto-generated  - from files w.php.php.txt, c99madshell_v2.1.php.php.txt, wacking.php.php.txt, c99shell_v1.0.php.php.txt, c99php.txt, SpecialShell_99.php.php.txt, ctt_sh.php.php.txt"
 		author = "Neo23x0 Yara BRG + customization by Stefan -dfate- Molls"
@@ -6320,24 +6320,7 @@ rule WebShell_Generic_PHP_4 {
 	condition:
 		all of them
 }
-rule WebShell_Generic_PHP_5 {
-	meta:
-		description = "PHP Webshells Github Archive - from files ex0shell.php, megabor.php, GRP WebShell 2.0 release build 2018 (C)2006,Great.php"
-		author = "Florian Roth"
-		super_rule = 1
-		hash0 = "64461ad8d8f23ea078201a31d747157f701a4e00"
-		hash1 = "3df1afbcfa718da6fc8af27554834ff6d1a86562"
-		hash2 = "ad86ef7f24f75081318146edc788e5466722a629"
-	strings:
-		$s0 = "(($perms & 0x0400) ? 'S' : '-'));" fullword
-		$s10 = "} elseif (($perms & 0x8000) == 0x8000) {" fullword
-		$s11 = "if (($perms & 0xC000) == 0xC000) {" fullword
-		$s12 = "$info .= (($perms & 0x0008) ?" fullword
-		$s16 = "// Block special" fullword
-		$s18 = "$info = 's';" fullword
-	condition:
-		all of them
-}
+
 rule WebShell_GFS {
 	meta:
 		description = "PHP Webshells Github Archive - from files GFS web-shell ver 3.1.7 - PRiV8.php, Predator.php, GFS_web-shell_ver_3.1.7_-_PRiV8.php"
@@ -7725,18 +7708,6 @@ rule shelltools_g0t_root_HideRun {
 	condition:
 		all of them
 }
-rule regshell {
-	meta:
-		description = "Webshells Auto-generated - file regshell.exe"
-		author = "Yara Bulk Rule Generator by Florian Roth"
-		hash = "db2fdc821ca6091bab3ebd0d8bc46ded"
-	strings:
-		$s0 = "Changes the base hive to HKEY_CURRENT_USER."
-		$s4 = "Displays a list of values and sub-keys in a registry Hive."
-		$s5 = "Enter a menu selection number (1 - 3) or 99 to Exit: "
-	condition:
-		all of them
-}
 rule PHP_Shell_v1_7 {
 	meta:
 		description = "Webshells Auto-generated - file PHP_Shell_v1.7.php"
@@ -8174,21 +8145,6 @@ rule JSP_jfigueiredo_APT_webshell_2 {
 		all of ($a*) or all of ($s*)
 }
 
-rule AJAX_FileUpload_webshell {
-	meta:
-		description = "AJAX JS/CSS components providing web shell by APT groups"
-		author = "F.Roth"
-		date = "12.10.2014"
-		score = 75
-		reference = "http://ceso.googlecode.com/svn/web/bko/filemanager/ajaxfileupload.js"
-	strings:
-		$a1 = "var frameId = 'jUploadFrame' + id;" ascii
-		$a2 = "var form = jQuery('<form  action=\"\" method=\"POST\" name=\"' + formId + '\" id=\"' + formId + '\" enctype=\"multipart/form-data\"></form>');" ascii
-		$a3 = "jQuery(\"<div>\").html(data).evalScripts();" ascii
-	condition:
-		all of them
-}
-
 rule Webshell_Insomnia {
 	meta:
 		description = "Insomnia Webshell - file InsomniaShell.aspx"
@@ -8561,4 +8517,206 @@ rule Webshell_zehir {
 		$s2 = "if (frmUpload.max.value<=0) frmUpload.max.value=1;" fullword ascii
 	condition:
 		filesize < 200KB and 1 of them
+}
+
+/*
+	Yara Rule Set
+	Author: Florian Roth
+	Date: 2016-09-10
+	Identifier: Webshells PHP bartblaze
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
+
+rule UploadShell_98038f1efa4203432349badabad76d44337319a6 {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "506a6ab6c49e904b4adc1f969c91e4f1a7dde164be549c6440e766de36c93215"
+	strings:
+		$s2 = "$lol = file_get_contents(\"../../../../../wp-config.php\");" fullword ascii
+		$s6 = "@unlink(\"./export-check-settings.php\");" fullword ascii
+		$s7 = "$xos = \"Safe-mode:[Safe-mode:\".$hsafemode.\"] " fullword ascii
+	condition:
+		( uint16(0) == 0x3f3c and filesize < 6KB and ( all of ($s*) ) ) or ( all of them )
+}
+
+rule DKShell_f0772be3c95802a2d1e7a4a3f5a45dcdef6997f3 {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "7ea49d5c29f1242f81f2393b514798ff7caccb50d46c60bdfcf61db00043473b"
+	strings:
+		$s1 = "<?php Error_Reporting(0); $s_pass = \"" ascii
+		$s2 = "$s_func=\"cr\".\"eat\".\"e_fun\".\"cti\".\"on" ascii
+	condition:
+		( uint16(0) == 0x3c0a and filesize < 300KB and all of them )
+}
+
+rule Unknown_8af033424f9590a15472a23cc3236e68070b952e {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "3382b5eaaa9ad651ab4793e807032650667f9d64356676a16ae3e9b02740ccf3"
+	strings:
+		$s1 = "$check = $_SERVER['DOCUMENT_ROOT']" fullword ascii
+		$s2 = "$fp=fopen(\"$check\",\"w+\");" fullword ascii
+		$s3 = "fwrite($fp,base64_decode('" ascii
+	condition:
+		( uint16(0) == 0x6324 and filesize < 6KB and ( all of ($s*) ) ) or ( all of them )
+}
+
+rule DkShell_4000bd83451f0d8501a9dfad60dce39e55ae167d {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "51a16b09520a3e063adf10ff5192015729a5de1add8341a43da5326e626315bd"
+	strings:
+		$x1 = "DK Shell - Took the Best made it Better..!!" fullword ascii
+		$x2 = "preg_replace(\"/.*/e\",\"\\x65\\x76\\x61\\x6C\\x28\\x67\\x7A\\x69\\x6E\\x66\\x6C\\x61\\x74\\x65\\x28\\x62\\x61\\x73\\x65\\x36\\x" ascii
+		$x3 = "echo '<b>Sw Bilgi<br><br>'.php_uname().'<br></b>';" fullword ascii
+
+		$s1 = "echo '<form action=\"\" method=\"post\" enctype=\"multipart/form-data\" name=\"uploader\" id=\"uploader\">';" fullword ascii
+		$s9 = "$x = $_GET[\"x\"];" fullword ascii
+	condition:
+		( uint16(0) == 0x3f3c and filesize < 200KB and 1 of ($x*) ) or ( 3 of them )
+}
+
+rule WebShell_5786d7d9f4b0df731d79ed927fb5a124195fc901 {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "b1733cbb0eb3d440c4174cc67ca693ba92308ded5fc1069ed650c3c78b1da4bc"
+	strings:
+		$s1 = "preg_replace(\"\\x2F\\x2E\\x2A\\x2F\\x65\",\"\\x65\\x76\\x61\\x6C\\x28\\x67\\x7A\\x69\\x6E\\x66\\x6C\\x61\\x74\\x65\\x28\\x62\\x" ascii
+		$s2 = "input[type=text], input[type=password]{" fullword ascii
+	condition:
+		( uint16(0) == 0x6c3c and filesize < 80KB and all of them )
+}
+
+rule webshell_e8eaf8da94012e866e51547cd63bb996379690bf {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "027544baa10259939780e97dc908bd43f0fb940510119fc4cce0883f3dd88275"
+	strings:
+		$x1 = "@exec('./bypass/ln -s /etc/passwd 1.php');" fullword ascii
+		$x2 = "echo \"<iframe src=mysqldumper/index.php width=100% height=100% frameborder=0></iframe> \";" fullword ascii
+		$x3 = "@exec('tar -xvf mysqldumper.tar.gz');" fullword ascii
+	condition:
+		( uint16(0) == 0x213c and filesize < 100KB and 1 of ($x*) ) or ( 2 of them )
+}
+
+rule Unknown_0f06c5d1b32f4994c3b3abf8bb76d5468f105167 {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "6362372850ac7455fa9461ed0483032a1886543f213a431f81a2ac76d383b47e"
+	strings:
+		$s1 = "$check = $_SERVER['DOCUMENT_ROOT'] . \"/libraries/lola.php\" ;" fullword ascii
+		$s2 = "$fp=fopen(\"$check\",\"w+\");" fullword ascii
+		$s3 = "fwrite($fp,base64_decode('" ascii
+	condition:
+		( uint16(0) == 0x6324 and filesize < 2KB and all of them )
+}
+
+rule WSOShell_0bbebaf46f87718caba581163d4beed56ddf73a7 {
+	meta:
+		description = "Detects a web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		hash1 = "d053086907aed21fbb6019bf9e644d2bae61c63563c4c3b948d755db3e78f395"
+	strings:
+		$s8 = "$default_charset='Wi'.'ndo.'.'ws-12'.'51';" fullword ascii
+		$s9 = "$mosimage_session = \"" fullword ascii
+	condition:
+		( uint16(0) == 0x3f3c and filesize < 300KB and all of them )
+}
+
+rule WebShell_Generic_1609_A {
+	meta:
+		description = "Auto-generated rule"
+		author = "Florian Roth"
+		reference = "https://github.com/bartblaze/PHP-backdoors"
+		date = "2016-09-10"
+		super_rule = 1
+		hash1 = "c817a490cfd4d6377c15c9ac9bcfa136f4a45ff5b40c74f15216c030f657d035"
+		hash3 = "69b9d55ea2eb4a0d9cfe3b21b0c112c31ea197d1cb00493d1dddc78b90c5745e"
+	strings:
+		$s1 = "return $qwery45234dws($b);" fullword ascii
+	condition:
+		( uint16(0) == 0x3f3c and 1 of them )
+}
+
+rule Nishang_Webshell {
+	meta:
+		description = "Detects a ASPX web shell"
+		author = "Florian Roth"
+		reference = "https://github.com/samratashok/nishang"
+		date = "2016-09-11"
+	strings:
+		$s1 = "psi.Arguments = \"-noninteractive \" + \"-executionpolicy bypass \" + arg;" ascii
+		$s2 = "output.Text += \"\nPS> \" + console.Text + \"\n\" + do_ps(console.Text);" ascii
+		$s3 = "<title>Antak Webshell</title>" fullword ascii
+		$s4 = "<asp:Button ID=\"executesql\" runat=\"server\" Text=\"Execute SQL Query\"" ascii
+	condition:
+		( uint16(0) == 0x253C and filesize < 100KB and 1 of ($s*) )
+}
+
+
+/*
+   Yara Rule Set
+   Author: Florian Roth
+   Date: 2017-02-28
+   Identifier: Simple PHP Webshell
+*/
+
+/* Rule Set ----------------------------------------------------------------- */
+
+rule PHP_Webshell_1_Feb17 {
+   meta:
+      description = "Detects a simple cloaked PHP web shell"
+      author = "Florian Roth"
+      reference = "https://isc.sans.edu/diary/Analysis+of+a+Simple+PHP+Backdoor/22127"
+      date = "2017-02-28"
+   strings:
+      $h1 = "<?php ${\"\\x" ascii
+
+      $x1 = "\";global$auth;function sh_decrypt_phase($data,$key){${\"" ascii
+      $x2 = "global$auth;return sh_decrypt_phase(sh_decrypt_phase($" ascii
+      $x3 = "]}[\"\x64\"]);}}echo " ascii
+      $x4 = "\"=>@phpversion(),\"\\x" ascii
+
+      /* Decloaked version */
+      $s1 = "$i=Array(\"pv\"=>@phpversion(),\"sv\"" ascii
+      $s3 = "$data = @unserialize(sh_decrypt(@base64_decode($data),$data_key));" ascii
+   condition:
+      ( $h1 at 0 and 1 of them ) or 2 of them
+}
+
+rule Webshell_Tiny_JSP_2 {
+	meta:
+		description = "Detects a tiny webshell - chine chopper"
+		author = "Florian Roth"
+		date = "2015-12-05"
+		score = 100
+	strings:
+		$s1 = "<%eval(Request(" nocase
+	condition:
+		uint16(0) == 0x253c and filesize < 40 and all of them
 }

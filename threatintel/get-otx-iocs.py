@@ -17,11 +17,13 @@ import sys
 import traceback
 import argparse
 
-OTX_KEY = "--- YOUR API KEY ---"
+OTX_KEY = ''
 
-HASH_BLACKLIST = [ 'e617348b8947f28e2a280dd93c75a6ad', '125da188e26bd119ce8cad7eeb1fc2dfa147ad47',
-                   '06f7826c2862d184a49e3672c0aa6097b11e7771a4bf613ec37941236c1a8e20' ]
+HASH_WHITELIST = ['e617348b8947f28e2a280dd93c75a6ad','125da188e26bd119ce8cad7eeb1fc2dfa147ad47',
+                  '06f7826c2862d184a49e3672c0aa6097b11e7771a4bf613ec37941236c1a8e20']
+DOMAIN_WHITELIST = ['proofpoint.com']
 
+class WhiteListedIOC(Exception): pass
 
 class OTXReceiver():
 
@@ -64,38 +66,51 @@ class OTXReceiver():
         for event in self.events:
             try:
                 for indicator in event["indicators"]:
-                    if indicator["type"] in ('FileHash-MD5', 'FileHash-SHA1', 'FileHash-SHA256') and \
-                                    indicator["indicator"] not in HASH_BLACKLIST:
 
-                        hash = indicator["indicator"]
-                        if self.hash_upper:
-                            hash = indicator["indicator"].upper()
+                    try:
+                        if indicator["type"] in ('FileHash-MD5', 'FileHash-SHA1', 'FileHash-SHA256'):
 
-                        self.hash_iocs += "{0}{3}{1} {2}\n".format(
-                            hash,
-                            event["name"].encode('unicode-escape'),
-                            " / ".join(event["references"])[:80],
-                            self.separator)
+                            # Whitelisting
+                            if indicator["indicator"] in HASH_WHITELIST:
+                                raise WhiteListedIOC
 
-                    if indicator["type"] == 'FilePath':
+                            hash = indicator["indicator"]
+                            if self.hash_upper:
+                                hash = indicator["indicator"].upper()
 
-                        filename = indicator["indicator"]
-                        if self.filename_regex_out:
-                            filename = my_escape(indicator["indicator"])
+                            self.hash_iocs += "{0}{3}{1} {2}\n".format(
+                                hash,
+                                event["name"].encode('unicode-escape'),
+                                " / ".join(event["references"])[:80],
+                                self.separator)
 
-                        self.filename_iocs += "{0}{3}{1} {2}\n".format(
-                            filename,
-                            event["name"].encode('unicode-escape'),
-                            " / ".join(event["references"])[:80],
-                            self.separator)
+                        if indicator["type"] == 'FilePath':
 
-                    if indicator["type"] in ('domain', 'hostname', 'IPv4', 'IPv6', 'CIDR'):
+                            filename = indicator["indicator"]
+                            if self.filename_regex_out:
+                                filename = my_escape(indicator["indicator"])
 
-                        self.c2_iocs += "{0}{3}{1} {2}\n".format(
-                            indicator["indicator"],
-                            event["name"].encode('unicode-escape'),
-                            " / ".join(event["references"])[:80],
-                            self.separator)
+                            self.filename_iocs += "{0}{3}{1} {2}\n".format(
+                                filename,
+                                event["name"].encode('unicode-escape'),
+                                " / ".join(event["references"])[:80],
+                                self.separator)
+
+                        if indicator["type"] in ('domain', 'hostname', 'IPv4', 'IPv6', 'CIDR'):
+
+                            for domain in DOMAIN_WHITELIST:
+                                if domain in indicator["indicator"]:
+                                    print indicator["indicator"]
+                                    raise WhiteListedIOC
+
+                            self.c2_iocs += "{0}{3}{1} {2}\n".format(
+                                indicator["indicator"],
+                                event["name"].encode('unicode-escape'),
+                                " / ".join(event["references"])[:80],
+                                self.separator)
+
+                    except WhiteListedIOC, e:
+                        pass
 
             except Exception, e:
                 traceback.print_exc()
